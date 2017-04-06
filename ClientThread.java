@@ -2,6 +2,9 @@ import java.io.*;
 import java.net.*;
 import java.lang.*;
 import java.util.*;
+import java.security.*;
+import javax.crypto.*;
+import java.nio.charset.StandardCharsets;
 
 public class ClientThread {
     static final int PORT = 16000;
@@ -14,6 +17,38 @@ public class ClientThread {
         Socket socket = null;
         Scanner sc = new Scanner(System.in);
         
+        Encrypter en = new Encrypter();
+        // KEY GENERATION TESTING -------------------------------
+        try{
+            SecureRandom random = new SecureRandom();
+            KeyGenerator keygen = KeyGenerator.getInstance("AES");
+            keygen.init(random);
+            Key key1 = keygen.generateKey();
+            System.out.println("Generated key: " + key1.getEncoded());
+            
+        } catch (NoSuchAlgorithmException e){
+            e.printStackTrace();
+            return;
+        }
+        // KEY GENERATION TESTING --------------------------------
+        // ENCRYPTION TESTING ----------------------------
+        String str = "Hello World!!!!!12345678";
+        byte[] val = str.getBytes(StandardCharsets.UTF_8);
+        System.out.println("Text in Bytes : " + val);
+
+        long[] key = { 78945677, 87678687, 234234, 234234 };
+
+        val = en.encrypt(val, key);
+        System.out.println("encryption complete...");
+
+        String s1 = new String(val, StandardCharsets.UTF_8);
+        System.out.println("Text Encryted : " + s1);
+        System.out.println("decrypting...");
+        val = en.decrypt(val, key);
+        String s2 = new String(val, StandardCharsets.UTF_8);
+        System.out.println("Text Decryted : " + s2);
+        // ENCRYPTION TESTING ----------------------------
+
         try {
             socket = new Socket("localhost", 16000);
             in = socket.getInputStream();
