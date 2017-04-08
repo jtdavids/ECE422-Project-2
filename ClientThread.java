@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 
 public class ClientThread {
     static final int PORT = 16000;
+    private long[] sharedKey = { 886223543, 114558990, 222323881, 234123879 };
 
     public static void main(String args[]) {
         //InputStream in = null;
@@ -15,40 +16,48 @@ public class ClientThread {
         PrintWriter out = null;
         InputStream in = null;
         Socket socket = null;
-        Scanner sc = new Scanner(System.in);
+        InputStreamReader user_in = new InputStreamReader(System.in);
+        BufferedReader user_br = new BufferedReader(user_in);
+        byte[] pub_key;
+        byte[] pri_key;
         
         Encrypter en = new Encrypter();
         // KEY GENERATION TESTING -------------------------------
-        try{
-            SecureRandom random = new SecureRandom();
-            KeyGenerator keygen = KeyGenerator.getInstance("AES");
-            keygen.init(random);
-            Key key1 = keygen.generateKey();
-            System.out.println("Generated key: " + key1.getEncoded());
-            
-        } catch (NoSuchAlgorithmException e){
-            e.printStackTrace();
-            return;
-        }
-        // KEY GENERATION TESTING --------------------------------
-        // ENCRYPTION TESTING ----------------------------
-        String str = "Hello World!!!!!12345678";
-        byte[] val = str.getBytes(StandardCharsets.UTF_8);
-        System.out.println("Text in Bytes : " + val);
+        //try{
+            /*SecureRandom random = new SecureRandom();
+            KeyPairGenerator keygen = KeyPairGenerator.getInstance("DH");
+            keygen.initialize(1024, random);
+            KeyPair keys = keygen.generateKeyPair();
+            pub_key = keys.getPublic().getEncoded();
+            pri_key = keys.getPrivate().getEncoded();
+            System.out.println("Public key: " + pub_key);
+            System.out.println("Private key: " + pri_key);
 
-        long[] key = { 78945677, 87678687, 234234, 234234 };
+            */
+            // KEY GENERATION TESTING --------------------------------
+            // ENCRYPTION TESTING ----------------------------
+            /*
+            String str = "Hello World!!!!!AAABBBAAABBBAAAB1234567812345678NNNNNNNNNNNNNNNNHello World!!!!!Hello World!!!!!";
+            byte[] val = str.getBytes(StandardCharsets.UTF_8);
+            System.out.println("Text in Bytes : " + val);
 
-        val = en.encrypt(val, key);
-        System.out.println("encryption complete...");
+            long[] key = { 78945677, 87678687, 234234, 234234 };
 
-        String s1 = new String(val, StandardCharsets.UTF_8);
-        System.out.println("Text Encryted : " + s1);
-        System.out.println("decrypting...");
-        val = en.decrypt(val, key);
-        String s2 = new String(val, StandardCharsets.UTF_8);
-        System.out.println("Text Decryted : " + s2);
-        // ENCRYPTION TESTING ----------------------------
+            val = en.encrypt(val, key);
+            System.out.println("encryption complete...");
 
+            String s1 = new String(val, StandardCharsets.UTF_8);
+            System.out.println("Text Encryted : " + s1);
+            System.out.println("decrypting...");
+            val = en.decrypt(val, key);
+            String s2 = new String(val, StandardCharsets.UTF_8);
+            System.out.println("Text Decryted : " + s2);
+            */
+            // ENCRYPTION TESTING ----------------------------
+       // } catch (NoSuchAlgorithmException e){
+         //   e.printStackTrace();
+           // return;
+        //}
         try {
             socket = new Socket("localhost", 16000);
             in = socket.getInputStream();
@@ -58,20 +67,54 @@ public class ClientThread {
             return;
         }
         String line;
-        String data;
+        String input;
         boolean connected = true;
+        int size = 0;
+
+        System.out.println("For authentication enter 'A <username> <password>");
+        System.out.println("For file transfer enter 'F <filepath>'");
+        System.out.println("For logoff enter 'finished'");
+
         while (connected) {
             try {
-                data = sc.next();
+
+                input = user_br.readLine();
+                byte[] data = encryptMessage(input);
+                size = data.length;
+                out.println(size);
                 out.println(data);
                 out.flush();
 
                 line = br.readLine();
-                if ((line == null) || line.equalsIgnoreCase("QUIT")) {
+
+                if (line == null || line.equals("null")) {
                     connected = false;
                     return;
                 } else {
-                    System.out.println(line);
+                    switch(line){
+                        case "VAL":
+                            System.out.println("Access Granted");
+                            break;
+                        case "INV":
+                            System.out.println("Access Denied");
+                            break;
+                        case "NEW":
+                            System.out.println("User added");
+                            break;
+                        case "ACK":
+                            System.out.println("Transferring file...");
+
+                            break;
+                        case "QUIT":
+                            connected = false;
+                            break;
+                        case "URC":
+                            System.out.println("Unrecognized Command");
+                            break;
+                        default:
+                            System.out.println(line);
+                            break;
+                    }
                 }
             
             } catch (IOException e) {
@@ -89,5 +132,11 @@ public class ClientThread {
             e.printStackTrace();
             return;
         }
+        
+    }
+    public byte[] encryptMessage(String message){
+        byte[] byteMessage = message.getBytes(StandardCharsets.UTF_8);
+        byte[] data = en.encrypt(byteMessage, sharedKey);
+        return data;
     }
 }

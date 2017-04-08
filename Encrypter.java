@@ -9,7 +9,7 @@ public class Encrypter {
     }
 
     public byte[] encrypt(byte[] v, long[] k){
-    	System.out.println("attempting encryption...");
+    	//System.out.println("attempting encryption...");
     	encryptInC(v, k);
     	return v;
     }

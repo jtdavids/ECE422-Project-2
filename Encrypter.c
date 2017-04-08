@@ -39,8 +39,8 @@ JNIEXPORT void JNICALL Java_Encrypter_encryptInC
 	long* v = (long*)(*env)->GetByteArrayElements(env, val, NULL);
 	long* k = (long*)(*env)->GetLongArrayElements(env, key, NULL);
 
-	jsize data_length = (*env)->GetArrayLength(env, val)/8;
-
+	jsize data_length = (*env)->GetArrayLength(env, val)/4;
+	//printf("length of data: %d\n", data_length);
 	for (int i = 0; i < data_length; i+=2)
 	{
 		encrypt(v+i, k);
@@ -49,7 +49,7 @@ JNIEXPORT void JNICALL Java_Encrypter_encryptInC
 	unsigned long y = 0, z=0, sum = 0;
 	unsigned long delta = 0x9e3779b9, n=32;
 
-	printf("length of data: %d\n", data_length);
+	
 	int i = 0;
 	for(i = 0; i<data_length; i=i+2){
 		y = v[i];
@@ -78,7 +78,7 @@ JNIEXPORT void JNICALL Java_Encrypter_decryptInC
 	long* v = (long*)(*env)->GetByteArrayElements(env, val, NULL);
 	long* k = (long*)(*env)->GetLongArrayElements(env, key, NULL);
 
-	jsize data_length = (*env)->GetArrayLength(env, val)/8;
+	jsize data_length = (*env)->GetArrayLength(env, val)/4;
 
 	for (int i = 0; i < data_length; i+=2) {
 		decrypt(v+i, k);
