@@ -5,6 +5,7 @@ import java.security.*;
 import javax.crypto.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
+import java.nio.ByteBuffer;
 import java.math.BigInteger;
 
 public class ClientHandler extends Thread {
@@ -12,6 +13,7 @@ public class ClientHandler extends Thread {
     private int clientID;
     private long[] hashKey = { 789123333, 876999222, 234234432, 234234567 };
     private long[] sharedKey = { 886223543, 114558990, 222323881, 234123879 };
+    Encrypter en = new Encrypter();  
 
     public ClientHandler(Socket clientSocket, int clientID) {
         this.socket = clientSocket;
@@ -36,15 +38,15 @@ public class ClientHandler extends Thread {
         String line;
         int size = 0;
         boolean connected = true;
+        boolean auth_confirmed = false;
         String username;
         String password;
         String filepath;
 
         while (connected) {
             try {
-                size = brinp.readLine();
-                byte[] data = new byte[size];
-                data = brinp.readLine();
+                line = en.readMessage(socket);
+
                 String[] inputs = line.split(" ");
                 if (line == null || line.equals("null")){
                     connected = false;
@@ -56,43 +58,48 @@ public class ClientHandler extends Thread {
                             username = inputs[1];
                             password = inputs[2];
                             if(authenticate(username, password)){
-                                out.println("VAL");
+                                auth_confirmed = true;
+                                en.sendMessage(socket,"VAL");
                             }else{
-                                out.println("INV");
+                                en.sendMessage(socket,"INV");
                             }
                             break;
                         case "ADDUSER":
                             username = inputs[1];
                             password = inputs[2];
                             newUser(username, password);
-                            out.println("NEW");
+                            en.sendMessage(socket, "NEW");
                             break;
                         case "F":
-                            filepath = inputs[1];
-                            Path path = Paths.get(filepath);
-                            if(!Files.exists(path)){
-                                out.println("FNF");
+                            if(auth_confirmed){
+                                filepath = inputs[1] + "\\" + inputs[2];
+                                System.out.println(filepath);
+                                Path path = Paths.get(filepath);
+                                if(!Files.exists(path)){
+                                    en.sendMessage(socket, "FNF");
+                                }else{
+                                    en.sendMessage(socket, "ACK");
+                                    en.transferFile(socket, path);
+                                }
                             }else{
-                                byte[] file = retrieveFile(path);
-                                int size = file.length;
-                                out.println("ACK");
+                                en.sendMessage(socket, "INV");
                             }
                             
                             //out.println(file);
                             break;
                         
                         case "finished":
-                            out.println("QUIT");
+                            en.sendMessage(socket,"QUIT");
                             connected = false;
                             break;
                         default:
-                            out.println("URC");
+                            en.sendMessage(socket,"URC");
                             break;
                     }
                     
                 }
                 out.flush();
-            } catch (IOException e) {
+            } catch (Exception e) {
                 connected = false;
                 return;
             }
@@ -109,7 +116,7 @@ public class ClientHandler extends Thread {
         }
     }
     public boolean authenticate(String user, String password){
-        Encrypter en = new Encrypter();
+        
         String line;
         String salt = "";
         String hashed_pw = "";
@@ -167,7 +174,7 @@ public class ClientHandler extends Thread {
         return pw_bytes;
     }
     public void newUser(String username, String password){
-        Encrypter en = new Encrypter();
+        
         Random r = new SecureRandom();
         String new_salt = new BigInteger(130, r).toString(32);
 
@@ -182,7 +189,7 @@ public class ClientHandler extends Thread {
 
         //salted_pw = en.decrypt(salted_pw, hashKey);
         //String s2 = new String(salted_pw, StandardCharsets.UTF_8);
-        //System.out.println("Password Decryted : " + s2);
+        System.out.println("stored pw : " + hash_string);
         System.out.println("Hashed string length in newUser: " + hash_string.length());
         Path file = Paths.get("shadowfile.txt");
         try{
@@ -201,7 +208,7 @@ public class ClientHandler extends Thread {
         byte[] check = new byte[1];
         check[0] = 0;
         try{
-            Encrypter en = new Encrypter();
+            
             byte[] data = Files.readAllBytes(filepath);
 
             data = en.encrypt(data, sharedKey);

@@ -5,10 +5,12 @@ import java.util.*;
 import java.security.*;
 import javax.crypto.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.*;
+import java.nio.ByteBuffer;
 
 public class ClientThread {
     static final int PORT = 16000;
-    private long[] sharedKey = { 886223543, 114558990, 222323881, 234123879 };
+    
 
     public static void main(String args[]) {
         //InputStream in = null;
@@ -20,8 +22,8 @@ public class ClientThread {
         BufferedReader user_br = new BufferedReader(user_in);
         byte[] pub_key;
         byte[] pri_key;
-        
         Encrypter en = new Encrypter();
+        
         // KEY GENERATION TESTING -------------------------------
         //try{
             /*SecureRandom random = new SecureRandom();
@@ -68,24 +70,26 @@ public class ClientThread {
         }
         String line;
         String input;
+        String filename = "";
         boolean connected = true;
         int size = 0;
 
-        System.out.println("For authentication enter 'A <username> <password>");
-        System.out.println("For file transfer enter 'F <filepath>'");
+        System.out.println("For authentication enter 'AUTHUSER <username> <password>");
+        System.out.println("For adding new users enter 'ADDUSER <username> <password>");
+        System.out.println("For file transfer enter 'F <filepath> <filename>'");
         System.out.println("For logoff enter 'finished'");
+
 
         while (connected) {
             try {
 
                 input = user_br.readLine();
-                byte[] data = encryptMessage(input);
-                size = data.length;
-                out.println(size);
-                out.println(data);
-                out.flush();
+                if(input.split(" ")[0].equals("F")){
+                    filename = input.split(" ")[2];
+                }
+                en.sendMessage(socket, input);
 
-                line = br.readLine();
+                line = en.readMessage(socket);
 
                 if (line == null || line.equals("null")) {
                     connected = false;
@@ -103,7 +107,15 @@ public class ClientThread {
                             break;
                         case "ACK":
                             System.out.println("Transferring file...");
-
+                            Path out_path = Paths.get(filename);
+                            System.out.println("filename: " + filename);
+                            byte[] file = en.recieveFile(socket);
+                            System.out.println("recieved file: " + file);
+                            Files.write(out_path, file);
+                            System.out.println("Transfer Complete!");
+                            break;
+                        case "FNF":
+                            System.out.println("Error: File not found.");
                             break;
                         case "QUIT":
                             connected = false;
@@ -134,9 +146,5 @@ public class ClientThread {
         }
         
     }
-    public byte[] encryptMessage(String message){
-        byte[] byteMessage = message.getBytes(StandardCharsets.UTF_8);
-        byte[] data = en.encrypt(byteMessage, sharedKey);
-        return data;
-    }
+    
 }
